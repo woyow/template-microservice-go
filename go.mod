@@ -3,9 +3,7 @@ module github.com/woyow/template-microservice-go
 go 1.17
 
 replace (
-	github.com/woyow/template-microservice-go/config => ./config
-	github.com/woyow/template-microservice-go/internal => ./internal
-	github.com/woyow/template-microservice-go/src => ./src
+	github.com/woyow/template-microservice-go/ => ./
 )
 
 require (

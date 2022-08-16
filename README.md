@@ -1,3 +1,6 @@
+## Template-microservice-go
+A tool for quickly generating a template for a new microservice.
+
 ## Usage
 
 1. Clone project:
