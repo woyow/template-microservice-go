@@ -1,0 +1,128 @@
+package app
+
+import (
+	"errors"
+	"fmt"
+	"github.com/spf13/viper"
+	"log"
+	"os"
+	"{{MODULE_NAME}}/config"
+	"time"
+
+	"github.com/golang-migrate/migrate/v4"
+	// migrate tools
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+)
+
+const (
+	_defaultAttempts = 20
+	_defaultTimeout  = time.Second
+)
+
+type (
+	// MigrateConfig -.
+	MigrateConfig struct {
+		PG
+	}
+
+	// PgBouncer -.
+	PgBouncer struct {
+		Enable bool
+		Host string
+		Port string
+	}
+
+	// PG -.
+	PG struct {
+		Host string
+		Port string
+		Username string
+		DBName string
+		SSLMode string
+		Password string
+		PgBouncer
+	}
+)
+
+func NewMigrateConfig() (*MigrateConfig, error) {
+	return &MigrateConfig{
+		PG: PG{
+			Username: viper.GetString("postgres.username"),
+			Password: os.Getenv("PG_PASSWORD"), // From .env file
+			Host:     viper.GetString("postgres.host"),
+			Port:     viper.GetString("postgres.port"),
+			DBName:   viper.GetString("postgres.dbname"),
+			SSLMode:	viper.GetString("postgres.sslmode"),
+			PgBouncer: PgBouncer{
+				Enable: viper.GetBool("postgres.pgbouncer.enable"),
+				Host:   viper.GetString("postgres.pgbouncer.host"),
+				Port:   viper.GetString("postgres.pgbouncer.port"),
+			},
+		},
+	}, nil
+}
+
+func init() {
+
+	// Initialization of .env file
+	envParams, errEnv := config.ReadEnvParameters()
+	if errEnv != nil {
+		log.Fatalf("error loading env variables: %s: ", errEnv.Error())
+	}
+	fmt.Println("config env for migrations: ", envParams.AppEnv)
+
+	// Load configuration of application
+	config.ReadConfig(envParams.AppEnv)
+	cfg, cfgErr := NewMigrateConfig()
+	if cfgErr != nil {
+		log.Fatalf("error load config for migrations: %s", cfgErr)
+	}
+
+	if cfg.PG.PgBouncer.Enable == true {
+		cfg.PG.Host = cfg.PG.PgBouncer.Host
+		cfg.PG.Port = cfg.PG.PgBouncer.Port
+	}
+
+	pgProto := "postgres://"
+
+	pgURL := pgProto + cfg.PG.Username + ":" + cfg.PG.Password + "@" + cfg.PG.Host + ":" +  cfg.PG.Port + "/" + cfg.PG.DBName
+
+	pgURL += fmt.Sprintf("?sslmode=%s", cfg.PG.SSLMode)
+
+	log.Println(pgURL)
+
+	var (
+		attempts = _defaultAttempts
+		err      error
+		m        *migrate.Migrate
+	)
+
+	for attempts > 0 {
+		m, err = migrate.New("file://db/migrations", pgURL)
+		if err == nil {
+			break
+		}
+
+		log.Printf("Migrate: postgres is trying to connect, attempts left: %d", attempts)
+		time.Sleep(_defaultTimeout)
+		attempts--
+	}
+
+	if err != nil {
+		log.Fatalf("Migrate: postgres connect error: %s", err)
+	}
+
+	err = m.Up()
+	defer m.Close()
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		log.Fatalf("Migrate: up error: %s", err)
+	}
+
+	if errors.Is(err, migrate.ErrNoChange) {
+		log.Printf("Migrate: no change")
+		return
+	}
+
+	log.Printf("Migrate: up success")
+}

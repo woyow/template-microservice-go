@@ -1,0 +1,32 @@
+app:
+  name: '{{SERVICE_NAME}}'
+  version: '0.0.1'
+  http:
+    port: 8080
+
+logger:
+  log_level: 'debug'
+
+postgres:
+  username: "postgres"
+  host: "postgres.local"
+  port: "5432"
+  dbname: "local_{{SERVICE_NAME}}_v1"
+  sslmode: "disable"
+  pgbouncer:
+    host: "postgres.local"
+    enable: true
+    port: "6432"
+
+redis:
+  host: "localhost"
+  port: "6379"
+  db: 0 # Default DB
+
+rabbitmq:
+  name: "rabbitmq"
+  host: "localhost"
+  vhost: "vhost"
+  port: "5672"
+  exchange: "{{SERVICE_NAME}}_exchange"
+  username: "admin"

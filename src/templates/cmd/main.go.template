@@ -1,0 +1,19 @@
+package main
+
+import (
+	"log"
+
+	"{{MODULE_NAME}}/config"
+	"{{MODULE_NAME}}/internal/app"
+)
+
+func main() {
+	// Load configuration of application
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatalf("config error: %s", err)
+	}
+
+	// Run application
+	app.Run(cfg)
+}

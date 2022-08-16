@@ -1,0 +1,169 @@
+package config
+
+import (
+	"fmt"
+	"github.com/joho/godotenv"
+	"os"
+
+	"github.com/spf13/viper"
+)
+
+const (
+	configDir = "config"
+)
+
+type (
+	// Config -.
+	Config struct {
+		App
+		Log
+		PG
+		Redis
+		RMQ
+	}
+
+	// HTTP -.
+	HTTP struct {
+		Port string
+	}
+
+	// App -.
+	App struct {
+		Name    string
+		Version string
+		HTTP
+	}
+
+	// Log -.
+	Log struct {
+		Level string
+	}
+
+	// PgBouncer -.
+	PgBouncer struct {
+		Enable bool
+		Host string
+		Port string
+	}
+
+	// PG -.
+	PG struct {
+		Host string
+		Port string
+		Username string
+		DBName string
+		SSLMode string
+		Password string
+		PgBouncer
+	}
+
+	Redis struct {
+		Host     string
+		Port     string
+		DB       int
+		Password string
+	}
+
+	// RMQ -.
+	RMQ struct {
+		Name string
+		Host string
+		VHost string
+		Port string
+		Exchange string
+		Username string
+		Password string
+	}
+)
+
+type EnvParameters struct {
+	AppEnv string
+	PGPassword string
+	RedisPassword string
+	RabbitPassword string
+}
+
+func ReadEnvParameters() (*EnvParameters, error) {
+	if err := godotenv.Load(); err != nil {
+		return nil, fmt.Errorf("error loading env variables: %s: ", err.Error())
+	}
+
+	return &EnvParameters{
+		AppEnv: os.Getenv("APP_ENV"),
+		PGPassword: os.Getenv("PG_PASSWORD"),
+		RedisPassword: os.Getenv("REDIS_PASSWORD"),
+		RabbitPassword: os.Getenv("RABBIT_PASSWORD"),
+	}, nil
+}
+
+func ReadConfig(configFileName string) error {
+	viper.AddConfigPath(configDir)
+	viper.SetConfigName(configFileName)
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		return fmt.Errorf("config error: %w", err)
+	}
+
+	return nil
+}
+
+func SetConfigVariables(envParams *EnvParameters) (*Config) {
+	return &Config{
+		App: App{
+			Name:    viper.GetString("app.name"),
+			Version: viper.GetString("app.version"),
+			HTTP: HTTP{
+				Port: viper.GetString("app.http.port"),
+			},
+		},
+		Log: Log{
+			Level: viper.GetString("logger.log_level"),
+		},
+		PG: PG{
+			Username: viper.GetString("postgres.username"),
+			Password: envParams.PGPassword,
+			Host:     viper.GetString("postgres.host"),
+			Port:     viper.GetString("postgres.port"),
+			DBName:   viper.GetString("postgres.dbname"),
+			SSLMode:	viper.GetString("postgres.sslmode"),
+			PgBouncer: PgBouncer{
+				Enable: viper.GetBool("postgres.pgbouncer.enable"),
+				Host:   viper.GetString("postgres.pgbouncer.host"),
+				Port:   viper.GetString("postgres.pgbouncer.port"),
+			},
+		},
+		Redis: Redis{
+			Host:     viper.GetString("redis.host"),
+			Port:     viper.GetString("redis.port"),
+			DB:       viper.GetInt("redis.db"),
+			Password: envParams.RedisPassword,
+		},
+		RMQ: RMQ{
+			Name: viper.GetString("rabbitmq.name"),
+			Host: viper.GetString("rabbitmq.host"),
+			VHost: viper.GetString("rabbitmq.vhost"),
+			Port: viper.GetString("rabbitmq.port"),
+			Exchange: viper.GetString("rabbitmq.exchange"),
+			Username: viper.GetString("rabbitmq.username"),
+			Password: envParams.RabbitPassword,
+		},
+	}
+}
+
+// NewConfig returns app config.
+func NewConfig() (*Config, error) {
+	// Initialization of .env file and read env parameters
+	envParams, err := ReadEnvParameters()
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("config env: ", envParams.AppEnv)
+
+	// Set config file and read config
+	if err := ReadConfig(envParams.AppEnv); err != nil {
+		return nil, err
+	}
+
+	return SetConfigVariables(envParams), nil
+}

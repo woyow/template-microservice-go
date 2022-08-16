@@ -1,0 +1,22 @@
+package redis
+
+import (
+	"github.com/go-redis/redis/v8"
+)
+
+type Config struct {
+	Host     string
+	Port     string
+	DB       int
+	Password string
+}
+
+func NewRedisClient(cfg *Config) *redis.Client {
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     cfg.Host + ":" + cfg.Port,
+		Password: cfg.Password,
+		DB:       cfg.DB,
+	})
+
+	return redisClient
+}

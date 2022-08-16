@@ -1,0 +1,15 @@
+package psql
+
+import (
+    "github.com/jackc/pgx/v4/pgxpool"
+)
+
+type PostgresStorage struct {
+
+}
+
+func NewPostgresStorage(db *pgxpool.Pool) *PostgresStorage {
+	return &PostgresStorage{
+
+	}
+}

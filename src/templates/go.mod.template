@@ -1,0 +1,8 @@
+module {{MODULE_NAME}}
+
+go {{GO_VERSION}}
+
+replace (
+	{{MODULE_NAME}}/config => ./config
+	{{MODULE_NAME}}/internal/ => ./internal/
+)

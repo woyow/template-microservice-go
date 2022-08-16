@@ -1,0 +1,17 @@
+package service
+
+import (
+	"{{MODULE_NAME}}/internal/entity"
+	"{{MODULE_NAME}}/internal/storage"
+)
+
+
+type Service struct {
+
+}
+
+func NewService(storage *storage.Storage) *Service {
+	return &Service{
+
+	}
+}
