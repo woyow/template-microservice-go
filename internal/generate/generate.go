@@ -73,6 +73,11 @@ func FilesGenerate(s *structure.Dirs, words *Words) error {
 		return err
 	}
 
+	// Dockerfile
+	if err := FileGeneration(words,	s.DockerFile); err != nil {
+		return err
+	}
+
 	// Cmd directory
 	{
 		// Service directory

@@ -20,6 +20,7 @@ type (
 		EnvExampleFile File
 		GitIgnoreFile File
 		GoModFile File
+		DockerFile File
 	}
 
 	// module/cmd
@@ -141,6 +142,11 @@ func NewStructure(cfg *config.Config) *Dirs {
 			Name: "go.mod",
 			Path: cfg.ProjectPath + "/",
 			Template: "./src/templates/go.mod.template",
+		},
+		DockerFile: File{
+			Name: "Dockerfile",
+			Path: cfg.ProjectPath + "/",
+			Template: "./src/templates/Dockerfile.template",
 		},
 		CmdDir: CmdDir{
 			Name: "cmd",
