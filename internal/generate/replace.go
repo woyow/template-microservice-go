@@ -16,7 +16,7 @@ type Words struct {
 	AppEnv ReplaceWord
 	PostgresEnv ReplaceWord
 	RedisEnv ReplaceWord
-	RabbitEnv ReplaceWord
+	JWTEnv ReplaceWord
 	GoVersion ReplaceWord
 }
 
@@ -36,19 +36,19 @@ func NewWords(cfg *config.Config) *Words {
 		},
 		PostgresEnv: ReplaceWord{
 			OldWord: "{{POSTGRES_ENV}}",
-			NewWord: "PG_PASSWORD: \"\"",
+			NewWord: "PG_USERNAME: \"\"\nPG_PASSWORD: \"\"",
 		},
 		RedisEnv: ReplaceWord{
 			OldWord: "{{REDIS_ENV}}",
-			NewWord: "REDIS_PASSWORD: \"\"",
+			NewWord: "REDIS_USERNAME: \"\"\nREDIS_PASSWORD: \"\"",
 		},
-		RabbitEnv: ReplaceWord{
-			OldWord: "{{RABBIT_ENV}}",
-			NewWord: "RABBIT_PASSWORD: \"\"",
+		JWTEnv: ReplaceWord{
+			OldWord: "{{JWT_ENV}}",
+			NewWord: "JWT_SECRET: \"\"",
 		},
 		GoVersion: ReplaceWord{
 			OldWord: "{{GO_VERSION}}",
-			NewWord: "1.17",
+			NewWord: "1.19",
 		},
 	}
 }
@@ -59,7 +59,7 @@ func ReplaceWords(words *Words, target *[]byte) []byte {
 	*target = bytes.Replace(*target, []byte(words.AppEnv.OldWord), []byte(words.AppEnv.NewWord), -1)
 	*target = bytes.Replace(*target, []byte(words.PostgresEnv.OldWord), []byte(words.PostgresEnv.NewWord), -1)
 	*target = bytes.Replace(*target, []byte(words.RedisEnv.OldWord), []byte(words.RedisEnv.NewWord), -1)
-	*target = bytes.Replace(*target, []byte(words.RabbitEnv.OldWord), []byte(words.RabbitEnv.NewWord), -1)
+	*target = bytes.Replace(*target, []byte(words.JWTEnv.OldWord), []byte(words.JWTEnv.NewWord), -1)
 	*target = bytes.Replace(*target, []byte(words.GoVersion.OldWord), []byte(words.GoVersion.NewWord), -1)
 
 	return *target

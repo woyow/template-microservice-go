@@ -2,100 +2,103 @@ package app
 
 import (
 	"context"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"{{MODULE_NAME}}/config"
+	"{{MODULE_NAME}}/internal/queue/nats"
+	"{{MODULE_NAME}}/internal/queue/redismq"
 	"{{MODULE_NAME}}/internal/service"
 	"{{MODULE_NAME}}/internal/storage"
 	"{{MODULE_NAME}}/internal/storage/psql"
 	"{{MODULE_NAME}}/internal/storage/redis"
-	_ "{{MODULE_NAME}}/internal/transport/grpc"
-	_ "{{MODULE_NAME}}/internal/transport/grpc/handler"
+	"{{MODULE_NAME}}/internal/transport/grpc"
 	"{{MODULE_NAME}}/internal/transport/http"
 	httpHandler "{{MODULE_NAME}}/internal/transport/http/handler"
 )
 
-// Possible logLevel value: "panic", "fatal", "error", "warn" or "warning", "info", "debug", "trace"
-func initLogger(logLevel string) {
-	level, err := log.ParseLevel(logLevel)
-	if err != nil {
-		log.Fatalf("Unable to parse loglevel: %s", logLevel)
-	}
-
-	log.SetFormatter(&log.TextFormatter{})
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
-	})
-	log.SetLevel(level)
-}
-
 func Run(cfg *config.Config) {
 
 	// Logger initialization
-	initLogger(cfg.Log.Level)
-	log.Println("Logger has been initialized")
+	logger := NewLogger(&cfg.Log)
+	logger.Info("Logger has been initialized")
 
-	// Configure database host and port
-	if cfg.PG.PgBouncer.Enable == true {
-		cfg.PG.Host = cfg.PG.PgBouncer.Host
-		cfg.PG.Port = cfg.PG.PgBouncer.Port
-	}
+	// Postgresql migrations
+	migrateConfig := NewMigrateConfig(&cfg.App, &cfg.PG, logger)
+	migrateConfig.Migrate()
 
 	// Postgresql database initialization
-	psqlDB, err := psql.NewPsqlDB(psql.Config{
-		Host:     cfg.PG.Host,
-		Port:     cfg.PG.Port,
-		Username: cfg.PG.Username,
-		DBName:   cfg.PG.DBName,
-		Password: cfg.PG.Password,
-	})
+	psqlDB, err := psql.NewPsqlDB(&cfg.PG)
 	if err != nil {
-		log.Fatalf("failed to initialize db: %s", err.Error())
+		logger.Fatalf("failed to initialize db: %s", err.Error())
 	}
-	log.Debug("Initialize postgresql db")
+	logger.Info("Postgresql db has been initialized")
+	defer psqlDB.Close() // Close database connection after return of function
 
-	// Close database connection after return of function
-	defer psqlDB.Close()
-
-	// Redis initialization
-	redisDB := redis.NewRedisClient(&redis.Config{
-		Host:     cfg.Redis.Host,
-		Port:     cfg.Redis.Port,
-		DB:       cfg.Redis.DB,
-		Password: cfg.Redis.Password,
-	})
-	log.Debug("Initialize redis db")
-
-	// Close redis connection after return of function
-	defer redisDB.Close()
+	// Redis cache initialization
+	redisDB := redis.NewRedisClient(&cfg.Redis)
+	logger.Info("Redis db has been initialized")
+	defer redisDB.Close() // Close redis connection after return of function
 
 	// Dependency injections
-	storages := storage.NewStorage(psqlDB, redisDB)
-	services := service.NewService(storages)
-	handlers := httpHandler.NewHandler(services)
-
-	// Run HTTP server
-	httpServer := new(http.Server)
-	log.Debug("Initialize http server")
+	storages := storage.NewStorage(psqlDB, redisDB, logger)
+	services := service.NewService(storages, cfg, logger)
+	redisMQ := redismq.NewRedisMQ(&cfg.RedisMQ, storages, logger)
 	go func() {
-		if err := httpServer.Run(cfg.App.HTTP.Port, handlers.Init()); err != nil {
-			log.Fatalf("error occurred while running http server: %s", err.Error())
+		if err := redisMQ.Run(context.Background()); err != nil {
+			logger.Fatalf("error occurred while running redismq: %s", err.Error())
 		}
 	}()
 
-	log.Printf("%s:%s started\n", cfg.App.Name, cfg.App.Version)
+	// Nats
+	natsMQ, err := nats.NewNats(&cfg.Nats, storages, logger)
+	if err != nil {
+		logger.Error(err)
+	}
+	go func() {
+		natsMQ.Run()
+	}()
 
-	// Handle signals for shutdown server
+	handlers := httpHandler.NewHandler(&cfg.App.HttpHandler, services, redisMQ, natsMQ, logger)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Run HTTP server
+	httpServer := http.NewServer(&cfg.HTTP, handlers.Init(), logger)
+	logger.Info("Initialize http server")
+	go func() {
+		if err := httpServer.Run(ctx); err != nil {
+			logger.Fatalf("error occurred while running http server: %s", err.Error())
+		}
+	}()
+
+	// Run GRPC server
+	grpcServer := grpc.NewServer(&cfg.GRPC, logger)
+	logger.Info("Initialize grpc server")
+	go func() {
+		if err := grpcServer.Run(); err != nil {
+			logger.Fatalf("error occurred while running grpc server: %s", err.Error())
+		}
+	}()
+
+	logger.Printf("%s:%s started\n", cfg.App.Name, cfg.App.Version)
+
+	// Handle signals for shutdown services
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
-	log.Printf("%s:%s shutdown\n", cfg.App.Name, cfg.App.Version)
+	logger.Printf("%s:%s shutdown\n", cfg.App.Name, cfg.App.Version)
+
+	// Shutdown services
+	natsMQ.Shutdown()
+	redisMQ.Shutdown(context.Background())
 
 	if err := httpServer.Shutdown(context.Background()); err != nil {
-		log.Errorf("error occurred on server shutting down: %s", err.Error())
+		logger.Errorf("error occurred on http server shutting down: %s", err.Error())
 	}
+
+	grpcServer.Shutdown()
 }

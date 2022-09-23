@@ -15,9 +15,17 @@ cd ~/template-microservice-go
 ```
 
 3. To create a template for a new microservice, enter the following command:
-```bash 
-go run ./cmd/main.go \
-    --path ./my-dir-for-project \
-    --module-name github.com/woyow/auth-service \
-    --name auth
+```bash
+go run ./cmd/main.go \ 
+    --path ./my-dir-for-project \ 
+    --module-name github.com/example-nickname/example-service \ 
+    --name example-service-name
+```
+
+or run binary file:
+```bash
+./micro-svc-builder \ 
+    --path ./my-dir-for-project \ 
+    --module-name github.com/example-nickname/example-service \ 
+    --name example-service-name
 ```

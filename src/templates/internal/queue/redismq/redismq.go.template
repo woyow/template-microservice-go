@@ -1,0 +1,148 @@
+package redismq
+
+import (
+	"{{MODULE_NAME}}/config"
+	"{{MODULE_NAME}}/internal/storage"
+
+	"github.com/adjust/rmq/v5"
+	"github.com/go-redis/redis/v8"
+	"github.com/sirupsen/logrus"
+
+	"context"
+	"fmt"
+	"time"
+)
+
+const (
+	prefetchLimit = 100
+	pollDuration  = 100 * time.Millisecond
+
+	reportBatchSize = 10
+	consumeDuration = time.Millisecond
+)
+
+const (
+	testTag = "test-tag"
+)
+
+type RedisMQ struct {
+	connection  	rmq.Connection
+	redisClient 	*redis.Client
+	storage 		*storage.Storage
+	err         	chan error
+	cfg      		*config.RedisMQ
+	log 			*logrus.Logger
+}
+
+func NewRedisMQ(cfg *config.RedisMQ, storage *storage.Storage, logger *logrus.Logger) *RedisMQ {
+	chanErr := make(chan error, 10)
+
+	redisClient := redis.NewClient(
+		&redis.Options{
+			Addr:      cfg.Host + ":" + cfg.Port,
+			OnConnect: nil,
+			Username:  cfg.Username,
+			Password:  cfg.Password,
+			DB:        cfg.DB,
+			PoolSize:  cfg.PoolSize,
+		},
+	)
+
+	connection, err := rmq.OpenConnectionWithRedisClient(testTag, redisClient, chanErr)
+	if err != nil {
+		panic(err)
+	}
+
+	return &RedisMQ{
+		connection: connection,
+		redisClient: redisClient,
+		storage: storage,
+		err: chanErr,
+		cfg: cfg,
+		log: logger,
+	}
+}
+
+func (r *RedisMQ) Run(ctx context.Context) error {
+	r.log.Info("Started redis message queue (RedisMQ) service")
+
+	go r.QueueCleaner(r.cfg)
+
+	r.log.Info("Starting redismq consumers")
+	err := r.StartConsumers(ctx)
+	if err != nil {
+		return err
+	}
+
+	for err := range r.err {
+		switch err := err.(type) {
+		case *rmq.HeartbeatError:
+			if err.Count == rmq.HeartbeatErrorLimit {
+				r.log.WithError(err).Error("heartbeat error (limit)")
+			} else {
+				r.log.WithError(err).Error("heartbeat error")
+			}
+		case *rmq.ConsumeError:
+			r.log.WithError(err).Error("consume error")
+		case *rmq.DeliveryError:
+			r.log.WithError(err).Error("delivery error")
+		default:
+			r.log.WithError(err).Error("other error")
+		}
+	}
+
+	return nil
+}
+
+// StartConsumers running consumers
+func (r *RedisMQ) StartConsumers(_ context.Context) error {
+	if err := r.runTestConsumer(); err != nil {
+		panic(err)
+	}
+
+	return nil
+}
+
+func (r *RedisMQ) runTestConsumer() error {
+	queue, err := r.connection.OpenQueue("tests")
+	if err != nil {
+		panic(err)
+	}
+
+	if err := queue.StartConsuming(prefetchLimit, pollDuration); err != nil {
+		panic(err)
+	}
+
+	// Run consumers for "tests" queue
+	for i := 0; i < r.cfg.RedisMQConsumer.NumberForQueue; i++ {
+		name := fmt.Sprintf("consumer-%s", "tests")
+		r.log.Infof("Adding consumer %d with name %s", i, name)
+		if _, err := queue.AddConsumer(name, NewConsumerTest("tests", 0, r.log, r.storage)); err != nil {
+			panic(err)
+		}
+	}
+
+	return nil
+}
+
+func (r *RedisMQ) QueueCleaner(cfg *config.RedisMQ) {
+	cleaner := rmq.NewCleaner(r.connection)
+
+	for range time.Tick(cfg.RedisMQCleaner.CleanPeriod * time.Second) {
+		returned, err := cleaner.Clean()
+		if err != nil {
+			r.log.Errorf("failed to clean: %s", err)
+			continue
+		}
+		r.log.Infof("cleaned unacked %d", returned)
+	}
+}
+
+func (r *RedisMQ) Shutdown(ctx context.Context) error {
+	defer func() {
+		r.log.WithContext(ctx).Info("Stop queue service")
+	}()
+
+	<-r.connection.StopAllConsuming() // waiting completion work of all consumers
+	return nil
+}

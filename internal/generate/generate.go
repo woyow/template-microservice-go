@@ -30,17 +30,23 @@ func DirsGenerate(s *structure.Dirs, cfg *config.Config) error {
 	// Internal directory
 	appDir := cfg.ProjectPath + sep + s.InternalDir.Name + sep + s.InternalDir.AppDir.Name
 	entityDir := cfg.ProjectPath + sep + s.InternalDir.Name + sep + s.InternalDir.EntityDir.Name
+	natsDir := cfg.ProjectPath + sep + s.InternalDir.Name + sep + s.InternalDir.QueueDir.Name + sep + s.InternalDir.QueueDir.NatsDir.Name
+	redisMQDir := cfg.ProjectPath + sep + s.InternalDir.Name + sep + s.InternalDir.QueueDir.Name + sep + s.InternalDir.QueueDir.RedisMQDir.Name
 	serviceDir := cfg.ProjectPath + sep + s.InternalDir.Name + sep + s.InternalDir.ServiceDir.Name
 	psqlDir := cfg.ProjectPath + sep + s.InternalDir.Name + sep + s.InternalDir.StorageDir.Name + sep + s.InternalDir.StorageDir.PsqlDir.Name
 	redisDir := cfg.ProjectPath + sep + s.InternalDir.Name + sep + s.InternalDir.StorageDir.Name + sep + s.InternalDir.StorageDir.RedisDir.Name
-	handlerDir := cfg.ProjectPath + sep + s.InternalDir.Name + sep + s.InternalDir.TransportDir.Name + sep + s.InternalDir.TransportDir.HttpDir.Name + sep + s.InternalDir.TransportDir.HttpDir.HandlerDir.Name
+	grpcDir := cfg.ProjectPath + sep + s.InternalDir.Name + sep + s.InternalDir.TransportDir.Name + sep + s.InternalDir.TransportDir.GrpcDir.Name
+	httpHandlerDir := cfg.ProjectPath + sep + s.InternalDir.Name + sep + s.InternalDir.TransportDir.Name + sep + s.InternalDir.TransportDir.HttpDir.Name + sep + s.InternalDir.TransportDir.HttpDir.HandlerDir.Name
 
 	dirs = append(dirs, appDir)
 	dirs = append(dirs, entityDir)
+	dirs = append(dirs, natsDir)
+	dirs = append(dirs, redisMQDir)
 	dirs = append(dirs, serviceDir)
 	dirs = append(dirs, psqlDir)
 	dirs = append(dirs, redisDir)
-	dirs = append(dirs, handlerDir)
+	dirs = append(dirs, grpcDir)
+	dirs = append(dirs, httpHandlerDir)
 
 	// Pkg directory
 	pkgDir := cfg.ProjectPath + sep + s.PkgDir.Name
@@ -57,6 +63,11 @@ func DirsGenerate(s *structure.Dirs, cfg *config.Config) error {
 }
 
 func FilesGenerate(s *structure.Dirs, words *Words) error {
+
+	// README.md
+	if err := FileGeneration(words,	s.ReadmeFile); err != nil {
+		return err
+	}
 
 	// .env.example
 	if err := FileGeneration(words,	s.EnvExampleFile); err != nil {
@@ -104,9 +115,12 @@ func FilesGenerate(s *structure.Dirs, words *Words) error {
 
 	// DB directory
 	{
-		// README.md
-		if err := FileGeneration(words, s.DBDir.ReadmeFile); err != nil {
-			return err
+		// Migrations directory
+		{
+			// README.md
+			if err := FileGeneration(words, s.DBDir.ReadmeFile); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -124,6 +138,11 @@ func FilesGenerate(s *structure.Dirs, words *Words) error {
 				return err
 			}
 
+			// logger.go
+			if err := FileGeneration(words, s.InternalDir.AppDir.LoggerFile); err != nil {
+				return err
+			}
+
 			// migrate.go
 			if err := FileGeneration(words, s.InternalDir.AppDir.MigrateFile); err != nil {
 				return err
@@ -135,6 +154,45 @@ func FilesGenerate(s *structure.Dirs, words *Words) error {
 			// README.md
 			if err := FileGeneration(words, s.InternalDir.EntityDir.ReadmeFile); err != nil {
 				return err
+			}
+		}
+
+		// Queue directory
+		{
+			// Nats directory
+			{
+				// nats.go
+				if err := FileGeneration(words, s.InternalDir.QueueDir.NatsDir.NatsFile); err != nil {
+					return err
+				}
+
+				// publisher_tests.go
+				if err := FileGeneration(words, s.InternalDir.QueueDir.NatsDir.PublisherTestsFile); err != nil {
+					return err
+				}
+
+				// subscriber_tests.go
+				if err := FileGeneration(words, s.InternalDir.QueueDir.NatsDir.SubscriberTestsFile); err != nil {
+					return err
+				}
+			}
+
+			// Redismq directory
+			{
+				// redismq.go
+				if err := FileGeneration(words, s.InternalDir.QueueDir.RedisMQDir.RedisMQFile); err != nil {
+					return err
+				}
+
+				// producer_tests.go
+				if err := FileGeneration(words, s.InternalDir.QueueDir.RedisMQDir.ProducerTestsFile); err != nil {
+					return err
+				}
+
+				// consumer_tests.go
+				if err := FileGeneration(words, s.InternalDir.QueueDir.RedisMQDir.ConsumerTestsFile); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -192,6 +250,13 @@ func FilesGenerate(s *structure.Dirs, words *Words) error {
 
 		// Transport directory
 		{
+			// Grpc directory
+			{
+				// server.go
+				if err := FileGeneration(words, s.InternalDir.TransportDir.GrpcDir.ServerFile); err != nil {
+					return err
+				}
+			}
 
 			// Http directory
 			{

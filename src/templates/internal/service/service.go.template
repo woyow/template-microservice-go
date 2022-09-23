@@ -1,8 +1,10 @@
 package service
 
 import (
-	"{{MODULE_NAME}}/internal/entity"
+    "{{MODULE_NAME}}/config"
 	"{{MODULE_NAME}}/internal/storage"
+
+	"github.com/sirupsen/logrus"
 )
 
 
@@ -10,7 +12,7 @@ type Service struct {
 
 }
 
-func NewService(storage *storage.Storage) *Service {
+func NewService(storage *storage.Storage, cfg *config.Config, logger *logrus.Logger) *Service {
 	return &Service{
 
 	}

@@ -1,0 +1,45 @@
+package grpc
+
+import (
+	"github.com/woyow/example-module/config"
+
+	"github.com/sirupsen/logrus"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
+	"net"
+)
+
+type Server struct {
+	grpcServer *grpc.Server
+	listener *net.Listener
+	log *logrus.Logger
+}
+
+// NewServer returns grpc server
+func NewServer(cfg *config.GRPC, logger *logrus.Logger) *Server {
+	address := ":" + cfg.Port
+
+	listener, err := net.Listen(cfg.Proto, address)
+	if err != nil {
+		grpclog.Fatalf("failed to listen: %v", err)
+	}
+
+	var opts []grpc.ServerOption
+
+	grpcServer := grpc.NewServer(opts...)
+
+	return &Server{
+		grpcServer: grpcServer,
+		listener: &listener,
+		log: logger,
+	}
+}
+
+func (s *Server) Run() error {
+	return s.grpcServer.Serve(*s.listener)
+}
+
+func (s *Server) Shutdown() {
+	s.grpcServer.GracefulStop()
+}

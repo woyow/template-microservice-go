@@ -2,20 +2,38 @@ app:
   name: '{{SERVICE_NAME}}'
   version: '0.0.1'
   http:
-    port: 8080
+    handler:
+      cors:
+        allow_credentials: true
+        allow_all_origins: false
+        allow_methods:
+          - "POST"
+          - "GET"
+        allow_headers:
+          - "Authorization"
+          - "Credentials"
+          - "Content-Type"
+        allow_origins:
+          - "http://localhost:3000"
+          - "https://localhost:3000"
+    port: "8080"
+  grpc:
+    proto: "tcp"
+    port: "50000"
 
 logger:
   log_level: 'debug'
+  disable_timestamp: false
+  full_timestamp: true
 
 postgres:
-  username: "postgres"
-  host: "postgres.local"
+  host: "localhost"
   port: "5432"
   dbname: "local_{{SERVICE_NAME}}_v1"
   sslmode: "disable"
   pgbouncer:
-    host: "postgres.local"
-    enable: true
+    host: "localhost"
+    enable: false
     port: "6432"
 
 redis:
@@ -23,10 +41,16 @@ redis:
   port: "6379"
   db: 0 # Default DB
 
-rabbitmq:
-  name: "rabbitmq"
+nats:
   host: "localhost"
-  vhost: "vhost"
-  port: "5672"
-  exchange: "{{SERVICE_NAME}}_exchange"
-  username: "admin"
+  port: "4222"
+
+redismq:
+  host: "localhost"
+  port: "6379"
+  db: 2
+  pool_size: 5
+  cleaner:
+    clean_period: 300 # 300 seconds
+  consumer:
+    number_for_queue: 5

@@ -1,0 +1,5 @@
+# Main binary file
+main
+
+# Local env variables
+.env

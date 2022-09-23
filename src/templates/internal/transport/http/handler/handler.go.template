@@ -1,37 +1,64 @@
 package handler
 
 import (
+	"{{MODULE_NAME}}/config"
+	"{{MODULE_NAME}}/internal/queue/nats"
+	"{{MODULE_NAME}}/internal/queue/redismq"
 	"{{MODULE_NAME}}/internal/service"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type Handler struct {
-	services *service.Service
+	cfg 		*config.HttpHandler
+	services 	*service.Service
+	rmq 		*redismq.RedisMQ
+	nats 		*nats.Nats
+	log 		*logrus.Logger
 }
 
-func NewHandler(services *service.Service) *Handler {
+// NewHandler returns handler for http server
+func NewHandler(cfg *config.HttpHandler, services *service.Service, redisMQ *redismq.RedisMQ, natsMQ *nats.Nats, logger *logrus.Logger) *Handler {
 	return &Handler{
+		cfg: cfg,
 		services: services,
+		rmq: redisMQ,
+		nats: natsMQ,
+		log: logger,
 	}
 }
 
+// Init returns router
 func (h *Handler) Init() *gin.Engine {
-	router := gin.Default()
+	router := gin.New()
+	{
+		router.Use(gin.Recovery(), gin.Logger())
+		router.HandleMethodNotAllowed = true
+		router.RedirectTrailingSlash = true
+		router.RemoveExtraSlash = true
+		router.UseH2C = false
+	}
 
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowAllOrigins = true
-	corsConfig.AllowCredentials = true
-	corsConfig.AddAllowHeaders("Origin", "Content-Length", "Content-Type", "Authorization")
+	corsConfig := cors.Config{
+		AllowCredentials: h.cfg.CORS.AllowCredentials,
+		AllowAllOrigins: h.cfg.CORS.AllowAllOrigins,
+		AllowMethods: h.cfg.CORS.AllowMethods,
+		AllowHeaders: h.cfg.CORS.AllowHeaders,
+		AllowOrigins: h.cfg.CORS.AllowOrigins,
+	}
+
 
 	router.Use(cors.New(corsConfig))
 
-	// Init router
-	h.initAPI(router)
+	h.initAPI(router) // Init router
+	h.log.Info("Gin router has been initialized")
 
 	return router
 }
+
+
 
 func (h *Handler) initAPI(router *gin.Engine) {
 

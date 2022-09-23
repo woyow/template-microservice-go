@@ -4,18 +4,19 @@ import (
 	"{{MODULE_NAME}}/internal/storage/psql"
 	"{{MODULE_NAME}}/internal/storage/redis"
 
+    "github.com/sirupsen/logrus"
 	"github.com/jackc/pgx/v4/pgxpool"
 	rds "github.com/go-redis/redis/v8"
 )
 
 type Storage struct {
-	Psql psql.PostgresStorage
-	Redis redis.RedisCache
+	Psql psql.Storage
+	Redis redis.Cache
 }
 
-func NewStorage(psqlDB *pgxpool.Pool, redisDB *rds.Client) *Storage {
+func NewStorage(psqlDB *pgxpool.Pool, redisDB *rds.Client, logger *logrus.Logger) *Storage {
 	return &Storage{
-		Psql: *psql.NewPostgresStorage(psqlDB),
-		Redis: *redis.NewRedisCache(redisDB),
+		Psql: *psql.NewStorage(psqlDB, logger),
+		Redis: *redis.NewCache(redisDB, logger),
 	}
 }

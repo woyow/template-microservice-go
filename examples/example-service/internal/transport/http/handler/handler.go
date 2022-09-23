@@ -1,0 +1,73 @@
+package handler
+
+import (
+	"github.com/woyow/example-module/config"
+	"github.com/woyow/example-module/internal/queue/nats"
+	"github.com/woyow/example-module/internal/queue/redismq"
+	"github.com/woyow/example-module/internal/service"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+)
+
+type Handler struct {
+	cfg 		*config.HttpHandler
+	services 	*service.Service
+	rmq 		*redismq.RedisMQ
+	nats 		*nats.Nats
+	log 		*logrus.Logger
+}
+
+// NewHandler returns handler for http server
+func NewHandler(cfg *config.HttpHandler, services *service.Service, redisMQ *redismq.RedisMQ, natsMQ *nats.Nats, logger *logrus.Logger) *Handler {
+	return &Handler{
+		cfg: cfg,
+		services: services,
+		rmq: redisMQ,
+		nats: natsMQ,
+		log: logger,
+	}
+}
+
+// Init returns router
+func (h *Handler) Init() *gin.Engine {
+	router := gin.New()
+	{
+		router.Use(gin.Recovery(), gin.Logger())
+		router.HandleMethodNotAllowed = true
+		router.RedirectTrailingSlash = true
+		router.RemoveExtraSlash = true
+		router.UseH2C = false
+	}
+
+	corsConfig := cors.Config{
+		AllowCredentials: h.cfg.CORS.AllowCredentials,
+		AllowAllOrigins: h.cfg.CORS.AllowAllOrigins,
+		AllowMethods: h.cfg.CORS.AllowMethods,
+		AllowHeaders: h.cfg.CORS.AllowHeaders,
+		AllowOrigins: h.cfg.CORS.AllowOrigins,
+	}
+
+
+	router.Use(cors.New(corsConfig))
+
+	h.initAPI(router) // Init router
+	h.log.Info("Gin router has been initialized")
+
+	return router
+}
+
+
+
+func (h *Handler) initAPI(router *gin.Engine) {
+
+	v1 := router.Group("/v1")
+	{
+		// Remove this code
+		example := v1.Group("/example_group")
+		{
+			example.POST("/example_create_method", h.exampleCreateMethod)
+		}
+	}
+}

@@ -12,16 +12,17 @@ type (
 	}
 
 	Dirs struct {
-		CmdDir
-		ConfigDir
-		DBDir
-		InternalDir
-		PkgDir
-		EnvExampleFile File
-		GitIgnoreFile File
-		GoModFile File
-		DockerFile File
-	}
+	CmdDir
+	ConfigDir
+	DBDir
+	InternalDir
+	PkgDir
+	ReadmeFile		File
+	EnvExampleFile 	File
+	GitIgnoreFile  	File
+	GoModFile      	File
+	DockerFile     	File
+}
 
 	// module/cmd
 	CmdDir struct {
@@ -60,6 +61,7 @@ type (
 		ReadmeFile File
 		AppDir
 		EntityDir
+		QueueDir
 		ServiceDir
 		StorageDir
 		TransportDir
@@ -74,12 +76,33 @@ type (
 	AppDir struct {
 		Name string
 		AppFile File
+		LoggerFile File
 		MigrateFile File
 	}
 
 	EntityDir struct {
 		Name string
 		ReadmeFile File
+	}
+
+	QueueDir struct {
+		Name string
+		NatsDir
+		RedisMQDir
+	}
+
+	NatsDir struct {
+		Name string
+		NatsFile File
+		PublisherTestsFile File
+		SubscriberTestsFile File
+	}
+
+	RedisMQDir struct {
+		Name string
+		RedisMQFile File
+		ProducerTestsFile File
+		ConsumerTestsFile File
 	}
 
 	ServiceDir struct {
@@ -110,7 +133,13 @@ type (
 
 	TransportDir struct {
 		Name string
+		GrpcDir
 		HttpDir
+	}
+
+	GrpcDir struct {
+		Name string
+		ServerFile File
 	}
 
 	HttpDir struct {
@@ -128,6 +157,11 @@ type (
 
 func NewStructure(cfg *config.Config) *Dirs {
 	return &Dirs{
+		ReadmeFile: File{
+			Name: "README.md",
+			Path: cfg.ProjectPath + "/",
+			Template: "./src/templates/README.md",
+		},
 		EnvExampleFile: File{
 			Name: ".env.example",
 			Path: cfg.ProjectPath + "/",
@@ -197,6 +231,11 @@ func NewStructure(cfg *config.Config) *Dirs {
 					Path: cfg.ProjectPath + "/internal/app/",
 					Template: "./src/templates/internal/app/app.go.template",
 				},
+				LoggerFile: File{
+					Name: "logger.go",
+					Path: cfg.ProjectPath + "/internal/app/",
+					Template: "./src/templates/internal/app/logger.go.template",
+				},
 				MigrateFile: File{
 					Name: "migrate.go",
 					Path: cfg.ProjectPath + "/internal/app/",
@@ -209,6 +248,45 @@ func NewStructure(cfg *config.Config) *Dirs {
 					Name: "README.md",
 					Path: cfg.ProjectPath + "/internal/entity/",
 					Template: "./src/templates/internal/entity/README.md",
+				},
+			},
+			QueueDir: QueueDir{
+				Name: "queue",
+				NatsDir: NatsDir{
+					Name: "nats",
+					NatsFile: File{
+						Name: "nats.go",
+						Path: cfg.ProjectPath + "/internal/queue/nats/",
+						Template: "./src/templates/internal/queue/nats/nats.go.template",
+					},
+					PublisherTestsFile: File{
+						Name: "publisher_tests.go",
+						Path: cfg.ProjectPath + "/internal/queue/nats/",
+						Template: "./src/templates/internal/queue/nats/publisher_tests.go.template",
+					},
+					SubscriberTestsFile: File{
+						Name: "subscriber_tests.go",
+						Path: cfg.ProjectPath + "/internal/queue/nats/",
+						Template: "./src/templates/internal/queue/nats/subscriber_tests.go.template",
+					},
+				},
+				RedisMQDir: RedisMQDir{
+					Name: "redismq",
+					RedisMQFile: File{
+						Name: "redismq.go",
+						Path: cfg.ProjectPath + "/internal/queue/redismq/",
+						Template: "./src/templates/internal/queue/redismq/redismq.go.template",
+					},
+					ProducerTestsFile: File{
+						Name: "producer_tests.go",
+						Path: cfg.ProjectPath + "/internal/queue/redismq/",
+						Template: "./src/templates/internal/queue/redismq/producer_tests.go.template",
+					},
+					ConsumerTestsFile: File{
+						Name: "consumer_tests.go",
+						Path: cfg.ProjectPath + "/internal/queue/redismq/",
+						Template: "./src/templates/internal/queue/redismq/consumer_tests.go.template",
+					},
 				},
 			},
 			ServiceDir: ServiceDir{
@@ -265,6 +343,14 @@ func NewStructure(cfg *config.Config) *Dirs {
 			},
 			TransportDir: TransportDir{
 				Name: "transport",
+				GrpcDir: GrpcDir{
+					Name: "grpc",
+					ServerFile: File{
+						Name: "server.go",
+						Path: cfg.ProjectPath + "/internal/transport/grpc/",
+						Template: "./src/templates/internal/transport/grpc/server.go.template",
+					},
+				},
 				HttpDir: HttpDir{
 					Name: "http",
 					ServerFile: File{

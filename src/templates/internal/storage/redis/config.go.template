@@ -1,17 +1,12 @@
 package redis
 
 import (
+	"{{MODULE_NAME}}/config"
+
 	"github.com/go-redis/redis/v8"
 )
 
-type Config struct {
-	Host     string
-	Port     string
-	DB       int
-	Password string
-}
-
-func NewRedisClient(cfg *Config) *redis.Client {
+func NewRedisClient(cfg *config.Redis) *redis.Client {
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     cfg.Host + ":" + cfg.Port,
 		Password: cfg.Password,
