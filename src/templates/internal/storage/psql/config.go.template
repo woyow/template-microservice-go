@@ -1,9 +1,12 @@
 package psql
 
 import (
-	"context"
+    "{{MODULE_NAME}}/config"
+
 	_"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+
+	"context"
 )
 
 const (
@@ -17,8 +20,8 @@ func NewPsqlDB(cfg *config.PG) (*pgxpool.Pool, error) {
 		cfg.Host = cfg.PgBouncer.Host
 		cfg.Port = cfg.PgBouncer.Port
 	}
-
-    pgProto := "postgres://"
+	
+	pgProto := "postgres://"
 	dbSource := pgProto + cfg.Username + ":" + cfg.Password + "@" + cfg.Host + ":" + cfg.Port + "/" + cfg.DBName
 
 	pool, err := pgxpool.Connect(context.Background(), dbSource)
