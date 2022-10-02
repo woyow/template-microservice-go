@@ -4,7 +4,7 @@ import (
 	"github.com/woyow/example-module/internal/storage/psql"
 	"github.com/woyow/example-module/internal/storage/redis"
 
-    "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/jackc/pgx/v4/pgxpool"
 	rds "github.com/go-redis/redis/v8"
 )

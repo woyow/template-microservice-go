@@ -9,17 +9,17 @@ Edit `service.go`. Add new interface `Something`
 package service
 
 import (
-    "context"
-    "{{MODULE_NAME}}/internal/entity"
-    "{{MODULE_NAME}}/internal/storage"
+	"context"
+	"{{MODULE_NAME}}/internal/entity"
+	"{{MODULE_NAME}}/internal/storage"
 )
 
 type Something interface {
-    CreateSomething(ctx context.Context, something *entity.CreateSomethingReq) (*entity.GetSomethingResp, error)
+	CreateSomething(ctx context.Context, something *entity.CreateSomethingReq) (*entity.GetSomethingResp, error)
 }
 
 type Service struct {
-    Something *SomethingService
+	Something *SomethingService
 }
 
 func NewService(storage *storage.Storage) *Service {

@@ -9,17 +9,17 @@ Edit `service.go`. Add new interface `Something`
 package service
 
 import (
-    "context"
-    "github.com/woyow/example-module/internal/entity"
-    "github.com/woyow/example-module/internal/storage"
+	"context"
+	"github.com/woyow/example-module/internal/entity"
+	"github.com/woyow/example-module/internal/storage"
 )
 
 type Something interface {
-    CreateSomething(ctx context.Context, something *entity.CreateSomethingReq) (*entity.GetSomethingResp, error)
+	CreateSomething(ctx context.Context, something *entity.CreateSomethingReq) (*entity.GetSomethingResp, error)
 }
 
 type Service struct {
-    Something *SomethingService
+	Something *SomethingService
 }
 
 func NewService(storage *storage.Storage) *Service {

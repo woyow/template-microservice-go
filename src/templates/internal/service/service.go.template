@@ -1,7 +1,7 @@
 package service
 
 import (
-    "{{MODULE_NAME}}/config"
+	"{{MODULE_NAME}}/config"
 	"{{MODULE_NAME}}/internal/storage"
 
 	"github.com/sirupsen/logrus"

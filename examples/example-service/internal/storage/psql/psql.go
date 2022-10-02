@@ -1,8 +1,8 @@
 package psql
 
 import (
-    "github.com/jackc/pgx/v4/pgxpool"
-    "github.com/sirupsen/logrus"
+	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/sirupsen/logrus"
 )
 
 type Storage struct {

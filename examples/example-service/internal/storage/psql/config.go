@@ -1,9 +1,12 @@
 package psql
 
 import (
-	"context"
+	"github.com/woyow/example-module/config"
+
 	_"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+
+	"context"
 )
 
 const (
@@ -18,7 +21,7 @@ func NewPsqlDB(cfg *config.PG) (*pgxpool.Pool, error) {
 		cfg.Port = cfg.PgBouncer.Port
 	}
 
-    pgProto := "postgres://"
+	pgProto := "postgres://"
 	dbSource := pgProto + cfg.Username + ":" + cfg.Password + "@" + cfg.Host + ":" + cfg.Port + "/" + cfg.DBName
 
 	pool, err := pgxpool.Connect(context.Background(), dbSource)

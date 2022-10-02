@@ -9,7 +9,7 @@ package psql
 
 import (
 	"{{SERVICE_NAME}}/internal/entity"
-    "github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type Something interface {
@@ -18,7 +18,7 @@ type Something interface {
 }
 
 type PostgresStorage struct {
-    Something *SomethingStorage
+	Something *SomethingStorage
 }
 
 func NewPostgresStorage(db *pgxpool.Pool) *PostgresStorage {
@@ -31,12 +31,12 @@ func NewPostgresStorage(db *pgxpool.Pool) *PostgresStorage {
 Create file `something.go`:
 ```go
 import(
-    "context"
-    "fmt"
-    log "github.com/sirupsen/logrus"
-    
-    "{{SERVICE_NAME}}/internal/entity"
-    "github.com/jackc/pgx/v4/pgxpool"
+	"context"
+	"fmt"
+	log "github.com/sirupsen/logrus"
+
+	"{{SERVICE_NAME}}/internal/entity"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 const (
@@ -71,11 +71,11 @@ func (s *SomethingStorage) CreateSomething(something *entity.CreateSomethingReq)
 
     log.Debug("psql: new something id: ", newSomethingID)
     
-    return &newSomethingID, nil
+	return &newSomethingID, nil
 }
 
 func (s *SomethingStorage) GetSomethingByID(somethingID string) (*entity.GetSomethingResp, error) {
-    var getSomething entity.GetSomethingResp
+	var getSomething entity.GetSomethingResp
     
     getSomethingByIDQuery := fmt.Sprintf("SELECT " +
     "id, created_at, name, city, age " +
