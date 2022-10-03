@@ -1,10 +1,11 @@
-FROM golang:1.17.8-alpine as builder
+FROM golang:1.19.1-alpine as builder
 RUN apk add --update gcc musl-dev
 
 WORKDIR /app
 COPY go.* /app/
 COPY /internal/ /app/internal
 COPY /config/ /app/config
+RUN go mod tidy
 RUN go mod download
 
 COPY /cmd /app/cmd
@@ -17,5 +18,6 @@ WORKDIR /app
 
 COPY .env .env
 COPY /db /app/db
+COPY /config /app/config
 
 CMD ["./main"]
