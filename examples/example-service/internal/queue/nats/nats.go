@@ -3,6 +3,7 @@ package nats
 import (
 	"github.com/woyow/example-module/config"
 	"github.com/woyow/example-module/internal/storage"
+	"time"
 
 	"github.com/nats-io/nats.go"
 	"github.com/sirupsen/logrus"
@@ -97,7 +98,11 @@ func (n *Nats) StartSubscribers() {
 			}
 			n.log.Debug("Received a message: ", string(msg.Data))
 			if err := n.CreateTestSubscriber(&msg.Data); err != nil {
-				n.log.Println(err)
+				err = msg.Nak()
+				if err != nil {
+					n.log.Println("Unable to NoAck Msg", err)
+				}
+				time.Sleep(10 * time.Second) // Spam message guard
 			}
 			err = msg.Ack()
 			if err != nil {
